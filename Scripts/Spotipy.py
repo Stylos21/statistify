@@ -177,7 +177,3 @@ class SpotipyObject:
 
         return information
 
-# def signin_oauth(self):
-# #     pass
-a = SpotipyObject(os.getenv('ID'), os.getenv('SECRET'))
-a.graph_popular_songs("wxlf")
