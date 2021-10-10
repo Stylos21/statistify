@@ -110,23 +110,33 @@ class SpotipyObject:
             pops[something['name'].replace(' ', '\n')] = something['popularity']
         return pops
 
+    def sort_dict(self, dictionary):
+        dictionary = dictionary.items()
+        dictionary = sorted(dictionary, key=lambda elem: elem[1])
+        return dictionary
+
     def graph_popular_songs(self, query: str):
         # countries on x-axis
         pop_nums = self.get_popularity_of_top_songs(query)
         name = self.format_artist_name(query)
         # fig = plt.figure()
         # ax = fig.add_axes([0,0,1,1])
+        pop_nums = self.sort_dict(pop_nums)
         plt.rcParams.update({'font.size': 6, 'axes.labelweight': "ultralight", "font.family": "Avenir Next"})
         colors = sns.color_palette('Set2')
         fig, ax = plt.subplots(nrows=1, ncols=1)
         ax.set_facecolor('white')
         plt.title("Popular Songs by " + name)
-        x = pop_nums.keys()
-        y = pop_nums.values()
+        x = [p[0] for p in pop_nums]
+        y = [p[1] for p in pop_nums]
         x_pos = [i for i, _ in enumerate(x)]
-        plt.bar(x_pos, y, color=colors)
+        axes = plt.bar(x_pos, y, color=colors)
         plt.xlabel("Song Names")
         # plt.yticks([])
+        rects = axes.patches
+        for rect, label in zip(rects, y):
+            height = rect.get_height()
+            ax.text(rect.get_x() + rect.get_width() / 2, height, label, ha="center", va="bottom")
         plt.xticks(x_pos, x)
         id = str(uuid.uuid4())
         plt.savefig("../Images/" + id + ".png")
@@ -176,4 +186,3 @@ class SpotipyObject:
         information["image"] = self.graph_popular_songs(query)
 
         return information
-
