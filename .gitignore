@@ -1,0 +1,4 @@
+.env
+statistify_env/
+Scripts/__pycache__
+Scripts/.cache
