@@ -36,9 +36,7 @@ class TrackButton(discord.ui.View):
 # creating bot object
 bot = Bot()
 
-# commands
-@bot.command(help="Get information about a song")
-async def song (ctx, *, songName):
+async def get_song_info(songName):
     song_info = sp.get_data_of_song(songName)
 
     name = song_info['tracks']['items'][0]['name']
@@ -54,6 +52,9 @@ async def song (ctx, *, songName):
 
     minutes = duration//60000
     seconds = (duration-minutes*60000)//1000
+
+    if seconds%10 == seconds:
+        seconds = "0" + str(seconds)
 
     embed1 = discord.Embed(
         title=name,
@@ -76,6 +77,13 @@ async def song (ctx, *, songName):
     embed2.add_field(name="Danceability", value=danceability)
     embed2.add_field(name="Energy", value=energy)
     embed2.add_field(name="Tempo", value=tempo)
+
+    return embed1, embed2, song_url
+
+# commands
+@bot.command(help="Get information about a song")
+async def song (ctx, *, songName):
+    embed1, embed2, song_url = await get_song_info(songName)
 
     await ctx.send(song_url)
     msg = await ctx.send(embed=embed1)
@@ -125,17 +133,19 @@ async def artistdata (ctx, artist):
     pages = [embed1, embed2]
     
     msg = await ctx.send(embed=embed1)
-    view = ButtonView(msg, embed1, embed2)
+    view = ButtonView(msg, embed1, embed2, ctx, info2['popularity_of_songs'])
     await msg.edit(embed=embed1, view=view)
     await ctx.send(file=files)
     #i think the issue is here that the paginator isnt sending the file and only the page
     #but the documentation for discordutils is down or smthing cause it isnt loading in for me
 class ButtonView(discord.ui.View):
-    def __init__(self, message, embed1, embed2):
+    def __init__(self, message, embed1, embed2, ctx=None, tracks=[]):
         super().__init__()
         self.message = message
         self.embed1 = embed1
         self.embed2 = embed2
+        self.ctx = ctx
+        self.tracks = tracks
     
     @discord.ui.button(
         label="Overview",
@@ -169,9 +179,39 @@ class ButtonView(discord.ui.View):
         #embed2.set_image(url="attachment://" +  files.filename)
         #embed2.add_field(name="Top Tracks", value=info2['popular_songs'], inline = False)
         #embed2.add_field(name="Top Tracks and Their Popularity", value=('\n'.join(info2['popularity_of_songs'])), inline=False)
-    
+
         await self.message.edit(embed=self.embed2, view=self)
-#does the user call this as a cothismmand? like how does the user call this
+        if not self.ctx is None:
+            embed = discord.Embed(title="Popular Track Search")
+            msg = await self.ctx.send(embed=embed)
+            view = SongView()
+            view.add_item(SongSelect(self.tracks, msg))
+            await msg.edit(embed=embed, view=view)
+# wait i didn't catch that what did u say?
+class SongView(discord.ui.View):
+    def __init__(self):
+        super().__init__()
+
+class SongSelect(discord.ui.Select):
+    def __init__(self, tracks, msg):
+        self.msg = msg
+
+        options = []
+        for track in tracks:
+            print(track)
+            options.append(discord.SelectOption(label=track))
+
+        super().__init__(placeholder="Select a song...", options=options)
+    
+    async def callback(self, interaction: discord.Interaction):
+        # pop_songs = sp.get_popularity_of_top_songs()
+        # print(pop_songs)
+        name = interaction.data['values'][0]    # this is the song name btw not the artist name oh.
+        # print(name) #maybe in the get song name method we can iterate through all the matching song namjes until we find the right artist
+        # im gonna get started on the readme and stuff in the devpost submission k ok
+        embed1, embed2, song_url = await get_song_info(name)
+        
+        await self.msg.edit(embed=embed1)
 
 
 bot.run(os.getenv('TOKEN'))
